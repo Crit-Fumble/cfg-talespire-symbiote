@@ -1,0 +1,10 @@
+{
+  "name": "@crit-fumble/talespire-symbiote",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Crit-Fumble Core integration symbiote for TaleSpire",
+  "scripts": {
+    "dev": "serve -l 5173 --cors --no-clipboard"
+  }
+}

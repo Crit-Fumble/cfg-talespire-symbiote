@@ -1,0 +1,39 @@
+{
+  "manifestVersion": 1,
+  "name": "CFG Core",
+  "version": "0.1.0",
+  "author": "Crit-Fumble Gaming, LLC",
+  "description": "Connect your TaleSpire board to Crit-Fumble Core — sync dice, chat, initiative, and more.",
+  "entryPoint": "/index.html",
+  "api": {
+    "version": "0.1"
+  },
+  "interop": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  },
+  "subscriptions": [
+    "hasInitialized",
+    "willShutdown",
+    "creatures.stateChanges",
+    "dice.rollResults",
+    "chat.receive",
+    "initiative.queueUpdates",
+    "clients.joinedBoard",
+    "clients.leftBoard"
+  ],
+  "environment": {
+    "runInBackground": true
+  },
+  "extras": {
+    "colorStyles": true,
+    "fonts": true,
+    "icons": true
+  },
+  "controls": {
+    "reload": true
+  },
+  "icons": {
+    "panel": "/icons/cfg-64x64.png",
+    "notification": "/icons/cfg-24x24-mono.png"
+  }
+}
