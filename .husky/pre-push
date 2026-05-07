@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# Symbiote has no automated tests yet — placeholder to gate pushes once added.
+# When tests exist, replace this body with: npm test --silent
+exit 0
