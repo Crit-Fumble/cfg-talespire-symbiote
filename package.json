@@ -1,11 +1,13 @@
 {
   "name": "@crit-fumble/talespire-symbiote",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Crit-Fumble Core integration symbiote for TaleSpire",
   "scripts": {
-    "dev": "serve -l 5173 --cors --no-clipboard",
+    "link": "node scripts/link-local.mjs",
+    "link:dev": "node scripts/link-local.mjs --dev",
+    "unlink": "node scripts/link-local.mjs --remove",
     "prepare": "husky"
   },
   "devDependencies": {

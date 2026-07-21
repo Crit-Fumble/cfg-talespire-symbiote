@@ -1,13 +1,13 @@
 {
   "manifestVersion": 1,
-  "name": "CFG Core",
+  "name": "CFG Core (dev)",
   "version": "0.2.0",
-  "summary": "Connect your TaleSpire board to Crit-Fumble Core — sync dice, chat, initiative, and more.",
+  "summary": "Local-development build of the Crit-Fumble Core symbiote — points at a local core-browser.",
   "license": "AGPL-3.0-only",
-  "descriptionFilePath": "/README.md",
-  "entryPoint": "https://core.crit-fumble.com/talespire",
+  "entryPoint": "https://cfg-localdev.crit-fumble-web.workers.dev/talespire",
   "controls": {
-    "reload": true
+    "reload": true,
+    "navigation": true
   },
   "icons": {
     "64x64": "/icons/cfg-64x64.png",
