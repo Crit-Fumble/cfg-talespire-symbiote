@@ -50,6 +50,27 @@ npm run unlink     # remove it again
 here need only a symbiote reload — no build, no copy. Because `entryPoint` is remote,
 UI changes need no relink at all: just reload the symbiote.
 
+### Running dev and production side by side
+
+Both can be installed at once — they appear as separate entries in the Symbiotes panel
+and are isolated on every axis that could collide:
+
+| | production | dev |
+| --- | --- | --- |
+| install dir | `Symbiotes/CFG Core` | `Symbiotes/CFG Core (dev)` |
+| manifest `name` | `CFG Core` | `CFG Core (dev)` |
+| `api.interop.id` | `610634b5-…` | `80dea37f-…` |
+| `entryPoint` origin | `core.crit-fumble.com` | `cfg-localdev.…workers.dev` |
+
+The **interop id** is the one that matters and is easy to miss: it identifies a symbiote
+for `TS.sync`, so two installs sharing an id could receive each other's sync messages and
+may contend for the same symbiote-scoped `TS.localStorage` — which would let a production
+API key be handed to the dev build, or vice versa. Keep them different.
+
+Everything else is naturally isolated: each symbiote runs in its own webview, so the
+`cfgTs*` event globals cannot collide, and browser storage is per-origin so the two
+`entryPoint` hosts get separate `sessionStorage`.
+
 ### Why dev points at a tunnel, not localhost
 
 `link:dev` targets `https://cfg-localdev.crit-fumble-web.workers.dev` — the stable
