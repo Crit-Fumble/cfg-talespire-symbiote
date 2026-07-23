@@ -6,41 +6,49 @@ initiative, and more.
 
 ## Local dev setup
 
+This repo ships **no application code** — only the manifests
+(`manifest.json` / `manifest.dev.json`), icons, and a local install helper.
+`entryPoint` is a remote URL, so TaleSpire loads the symbiote UI straight from
+`cfg-core-browser` (see the README's "How it works"). Most symbiote *feature*
+work therefore happens in `cfg-core-browser`
+(`src/clients/browser/talespire-api.ts`, `src/views/talespire/*`); changes
+land here only when the manifest contract (subscriptions, icons, metadata)
+moves with them.
+
 You need:
 
-- **Node.js** (any recent LTS — only needed for the dev server)
-- **TaleSpire** if you want to test the symbiote against a live board
+- **Node.js** (any recent LTS — only for the install helper)
+- **TaleSpire** (Windows) to load the symbiote against a live board
 
 ```bash
 # Clone, then:
 npm install
-npm run dev   # serves on http://localhost:5173
+npm run link:dev   # install into TaleSpire pointing at the local dev tunnel
+npm run link       # …or pointing at production
+npm run unlink     # remove again
 ```
 
-The symbiote is a **static bundle**: `index.html` + `scripts/` + `icons/` +
-`manifest.json`. There is no build step. `npm run dev` just runs `serve` to
-host the directory locally so TaleSpire can load it as a sideloaded symbiote.
-
-To point TaleSpire at your local copy, follow TaleSpire's symbiote sideloading
-docs and use `http://localhost:5173/manifest.json` as the manifest URL.
+`link` symlinks the repo into TaleSpire's `Symbiotes` directory, so manifest
+edits need only a symbiote reload — and because `entryPoint` is remote, UI
+changes need no relink at all. The README covers running the dev and
+production installs side by side.
 
 ## Running tests
 
-There is no automated test suite at this time — the symbiote is a thin shim
-around TaleSpire's API and is exercised manually against a live board.
-
-The `pre-push` Husky hook runs `npm test`; if/when tests are added, the gate
-will activate. Don't bypass with `--no-verify`.
+There is no automated test suite — the repo is a manifest + icons, exercised
+manually against a live board. The Husky hooks run a secret scan on commit;
+the `pre-push` hook is a placeholder that will start gating pushes if tests
+are ever added.
 
 ## Code conventions
 
-- **No transpile step.** Write plain ESM JavaScript that the browser can load
-  directly. Use `import { ... } from './foo.js'` (with the `.js` extension).
-- **File size:** 800 lines hard maximum.
-- **No external runtime dependencies** beyond what TaleSpire's symbiote
-  sandbox provides. Everything that ships must be in-repo.
-- **Manifest changes:** if you change `manifest.json`, update the README and
-  any sideload instructions to match.
+- **Manifest changes:** if you change `manifest.json`, mirror the change in
+  `manifest.dev.json`, keep the subscription table in the README in sync, and
+  remember every `api.subscriptions` entry must match a global function
+  installed by `cfg-core-browser`'s `installTalespireEventBridge()` — adding
+  an event means editing both repos.
+- **No application code here.** If you're writing UI or `TS.*` calls, the
+  change belongs in `cfg-core-browser`.
 
 ## Commit messages
 
