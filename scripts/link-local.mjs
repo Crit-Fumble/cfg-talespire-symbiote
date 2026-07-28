@@ -6,7 +6,9 @@
  * Usage:
  *   npm run link        → manifest.json     (entryPoint: production core)
  *   npm run link:dev    → manifest.dev.json (entryPoint: the local dev tunnel)
- *   npm run unlink      → remove both installs
+ *   npm run link:e2e    → manifest.e2e.json (entryPoint: the local e2e stack :11000 —
+ *                         Playwright drives this install over TaleSpire's CEF debugger)
+ *   npm run unlink      → remove all installs
  *
  * The installed directory contains a symlink per file rather than one symlink to
  * the repo, so the dev/prod manifest choice is just which file `manifest.json`
@@ -24,7 +26,8 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const INSTALL_NAMES = { prod: 'CFG Core', dev: 'CFG Core (dev)' }
+const INSTALL_NAMES = { prod: 'CFG Core', dev: 'CFG Core (dev)', e2e: 'CFG Core (e2e)' }
+const MANIFEST_SOURCES = { prod: 'manifest.json', dev: 'manifest.dev.json', e2e: 'manifest.e2e.json' }
 
 /**
  * TaleSpire's per-user local symbiote directory (NOT primary/Mods, which is
@@ -78,7 +81,7 @@ function isLink(path) {
   }
 }
 
-const mode = process.argv.includes('--dev') ? 'dev' : 'prod'
+const mode = process.argv.includes('--e2e') ? 'e2e' : process.argv.includes('--dev') ? 'dev' : 'prod'
 const dest = join(symbiotesDir(), INSTALL_NAMES[mode])
 
 if (process.argv.includes('--remove')) {
@@ -103,8 +106,8 @@ if (!existsSync(parent)) {
 remove(dest)
 mkdirSync(dest, { recursive: true })
 
-// manifest.json is the only file whose source differs between dev and prod.
-const manifestSource = mode === 'dev' ? 'manifest.dev.json' : 'manifest.json'
+// manifest.json is the only file whose source differs between the modes.
+const manifestSource = MANIFEST_SOURCES[mode]
 install(join(REPO, manifestSource), join(dest, 'manifest.json'))
 install(join(REPO, 'README.md'), join(dest, 'README.md'))
 install(join(REPO, 'icons'), join(dest, 'icons'), 'dir')

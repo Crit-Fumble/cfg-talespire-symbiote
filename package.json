@@ -8,7 +8,8 @@
     "link": "node scripts/link-local.mjs",
     "link:dev": "node scripts/link-local.mjs --dev",
     "unlink": "node scripts/link-local.mjs --remove",
-    "prepare": "husky"
+    "prepare": "husky",
+    "link:e2e": "node scripts/link-local.mjs --e2e"
   },
   "devDependencies": {
     "husky": "^9.1.7"

@@ -1,0 +1,51 @@
+{
+  "manifestVersion": 1,
+  "name": "CFG Core (e2e)",
+  "version": "0.2.0",
+  "summary": "E2E-test build of the Crit-Fumble Core symbiote — points at the local e2e stack (:11000), driven by Playwright over the CEF debugger.",
+  "license": "AGPL-3.0-only",
+  "entryPoint": "http://localhost:11000/talespire",
+  "controls": {
+    "reload": true,
+    "navigation": true
+  },
+  "icons": {
+    "64x64": "/icons/cfg-64x64.png",
+    "notification": "/icons/cfg-24x24-mono.png"
+  },
+  "api": {
+    "version": "0.1",
+    "initTimeout": 10,
+    "interop": {
+      "id": "cd7c6f1c-d718-418d-8e4d-1820e027833d"
+    },
+    "subscriptions": {
+      "symbiote": {
+        "onStateChangeEvent": "cfgTsStateChange"
+      },
+      "urls": {
+        "onUrlMessage": "cfgTsUrlMessage"
+      },
+      "chat": {
+        "onChatMessage": "cfgTsChatMessage"
+      },
+      "dice": {
+        "onRollResults": "cfgTsRollResults"
+      },
+      "initiative": {
+        "onInitiativeEvent": "cfgTsInitiative"
+      },
+      "creatures": {
+        "onCreatureStateChange": "cfgTsCreatureState"
+      },
+      "clients": {
+        "onClientEvent": "cfgTsClientEvent"
+      }
+    }
+  },
+  "environment": {
+    "webViewBackgroundColor": "#1a1a2e",
+    "capabilities": ["runInBackground"],
+    "extras": ["fonts", "icons", "colorStyles"]
+  }
+}
