@@ -18,7 +18,7 @@
  * them and neither can claim the other's symbiote-scoped storage.
  */
 
-import { existsSync, lstatSync, mkdirSync, readdirSync, rmSync, symlinkSync, unlinkSync } from 'node:fs'
+import { cpSync, existsSync, lstatSync, mkdirSync, readdirSync, rmSync, symlinkSync, unlinkSync } from 'node:fs'
 import { homedir, platform } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -26,15 +26,40 @@ import { fileURLToPath } from 'node:url'
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const INSTALL_NAMES = { prod: 'CFG Core', dev: 'CFG Core (dev)' }
 
-/** TaleSpire's per-user local symbiote directory (NOT primary/CommunityContent, which is mod.io's). */
+/**
+ * TaleSpire's per-user local symbiote directory (NOT primary/Mods, which is
+ * mod.io's). On Windows this is Unity's persistentDataPath under **LocalLow** —
+ * not %APPDATA%/Roaming, which this script previously pointed at; the install
+ * "succeeded" into a directory TaleSpire never reads.
+ */
 function symbiotesDir() {
   switch (platform()) {
     case 'darwin':
       return join(homedir(), 'Library', 'Application Support', 'com.bouncyrock.talespire', 'Symbiotes')
     case 'win32':
-      return join(process.env.APPDATA ?? join(homedir(), 'AppData', 'Roaming'), 'TaleSpire', 'Symbiotes')
+      return join(homedir(), 'AppData', 'LocalLow', 'BouncyRock Entertainment', 'TaleSpire', 'Symbiotes')
     default:
       return join(homedir(), '.config', 'unity3d', 'BouncyRock Entertainment', 'TaleSpire', 'Symbiotes')
+  }
+}
+
+/**
+ * Symlink when the OS allows it, copy when it doesn't.
+ *
+ * On Windows, creating symlinks needs Developer Mode or elevation; without
+ * either, symlinkSync throws EPERM. A copy install is a perfectly good
+ * fallback — the symbiote app itself is REMOTE (entryPoint is a URL), so the
+ * only thing a stale copy can miss is a manifest/icon change, and those change
+ * rarely. Re-run `npm run link[:dev]` after editing the manifest to refresh.
+ */
+let installMode = 'symlink'
+function install(src, dst, type) {
+  try {
+    symlinkSync(src, dst, type)
+  } catch (err) {
+    if (err.code !== 'EPERM' && err.code !== 'EINVAL') throw err
+    installMode = 'copy'
+    cpSync(src, dst, { recursive: true })
   }
 }
 
@@ -80,11 +105,14 @@ mkdirSync(dest, { recursive: true })
 
 // manifest.json is the only file whose source differs between dev and prod.
 const manifestSource = mode === 'dev' ? 'manifest.dev.json' : 'manifest.json'
-symlinkSync(join(REPO, manifestSource), join(dest, 'manifest.json'))
-symlinkSync(join(REPO, 'README.md'), join(dest, 'README.md'))
-symlinkSync(join(REPO, 'icons'), join(dest, 'icons'), 'dir')
+install(join(REPO, manifestSource), join(dest, 'manifest.json'))
+install(join(REPO, 'README.md'), join(dest, 'README.md'))
+install(join(REPO, 'icons'), join(dest, 'icons'), 'dir')
 
-console.log(`Linked ${INSTALL_NAMES[mode]} (${mode}) → ${dest}`)
+console.log(`${installMode === 'symlink' ? 'Linked' : 'Copied'} ${INSTALL_NAMES[mode]} (${mode}) → ${dest}`)
 console.log(`  manifest.json → ${manifestSource}`)
 for (const entry of readdirSync(dest)) console.log(`  ${entry}`)
+if (installMode === 'copy') {
+  console.log('\n  (copy install — symlinks need Windows Developer Mode; re-run this after manifest/icon edits)')
+}
 console.log('\nRestart TaleSpire (or use the symbiote reload control) to pick it up.')
