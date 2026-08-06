@@ -66,12 +66,13 @@ docs: add sideloading instructions
 
 ## Submitting a pull request
 
-1. **Fork** the repo and branch from `main`:
+1. **Fork** the repo and branch from `next` (the release-candidate branch):
    `git checkout -b feat/your-change`
 2. **Test manually** against a live TaleSpire board where applicable;
    describe your test plan in the PR.
 3. **Commit** using Conventional Commits.
-4. **Open a PR** against `main`. Screenshots/clips are very welcome for
+4. **Open a PR** against `next` (never `main` — it is released truth and is
+   only ever fast-forwarded to). Screenshots/clips are very welcome for
    anything that touches the UI surface.
 5. **Be patient and responsive** during review.
 
