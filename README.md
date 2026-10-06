@@ -1,6 +1,6 @@
 # Crit-Fumble Core — TaleSpire symbiote
 
-TaleSpire symbiote that connects a TaleSpire board to [Crit-Fumble Core](https://crit-fumble.com) — sync dice, chat, initiative, and more.
+TaleSpire symbiote that connects a TaleSpire board to [Crit-Fumble Core](https://crit-fumble.com) — sync dice, chat, and more.
 
 - **Symbiote name:** `CFG Core`
 - **Manifest:** [manifest.json](manifest.json) (production) · [manifest.dev.json](manifest.dev.json) (local)
@@ -22,8 +22,8 @@ The browser side of the contract lives in `cfg-core-browser`:
 
 TaleSpire does **not** offer runtime event subscription. `api.subscriptions` maps an
 event source to the name of a **global function** the loaded page must define. Those
-globals are installed by `installTalespireEventBridge()` in `talespire-api.ts`, and the
-names must match this manifest exactly:
+globals are the `EVENT_GLOBALS` list in `talespire-api.ts`, installed by its internal
+`installEventBridge()`, and the names must match this manifest exactly:
 
 | Manifest subscription | Global function |
 | --- | --- |

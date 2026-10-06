@@ -2,7 +2,7 @@
 
 Thanks for your interest in contributing. This is the TaleSpire symbiote that
 connects a TaleSpire board to the Crit-Fumble platform — syncing dice, chat,
-initiative, and more.
+and more.
 
 ## Local dev setup
 
@@ -44,9 +44,10 @@ are ever added.
 
 - **Manifest changes:** if you change `manifest.json`, mirror the change in
   `manifest.dev.json`, keep the subscription table in the README in sync, and
-  remember every `api.subscriptions` entry must match a global function
-  installed by `cfg-core-browser`'s `installTalespireEventBridge()` — adding
-  an event means editing both repos.
+  remember every `api.subscriptions` entry must match a name in
+  `EVENT_GLOBALS` in `cfg-core-browser`'s `src/clients/browser/talespire-api.ts`,
+  which its internal `installEventBridge()` installs — adding an event means
+  editing both repos.
 - **No application code here.** If you're writing UI or `TS.*` calls, the
   change belongs in `cfg-core-browser`.
 
