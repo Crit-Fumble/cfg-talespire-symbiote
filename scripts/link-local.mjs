@@ -32,8 +32,8 @@ const MANIFEST_SOURCES = { prod: 'manifest.json', dev: 'manifest.dev.json', e2e:
 /**
  * TaleSpire's per-user local symbiote directory (NOT primary/Mods, which is
  * mod.io's). On Windows this is Unity's persistentDataPath under **LocalLow** —
- * not %APPDATA%/Roaming, which this script previously pointed at; the install
- * "succeeded" into a directory TaleSpire never reads.
+ * not %APPDATA%/Roaming: an install there "succeeds" into a directory TaleSpire
+ * never reads.
  */
 function symbiotesDir() {
   switch (platform()) {
