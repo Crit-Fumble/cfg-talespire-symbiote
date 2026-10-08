@@ -35,10 +35,12 @@ production installs side by side.
 
 ## Running tests
 
-There is no automated test suite — the repo is a manifest + icons, exercised
-manually against a live board. The Husky hooks run a secret scan on commit;
-the `pre-push` hook is a placeholder that will start gating pushes if tests
-are ever added.
+The symbiote has no automated tests — the repo is a manifest + icons, exercised
+manually against a live board. `npm test` checks `.gitleaks.toml` through the
+real gitleaks binary (`gitleaks-config.test.mjs`; it skips when gitleaks is not
+installed). The Husky hooks run a secret scan on commit and `npm test` on push.
+The test was written against gitleaks 8.30.1: if it fails on a push that does
+not touch `.gitleaks.toml`, compare your `gitleaks version` first.
 
 ## Code conventions
 
