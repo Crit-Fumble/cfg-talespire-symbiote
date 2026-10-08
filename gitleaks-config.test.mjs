@@ -1,0 +1,122 @@
+// .gitleaks.toml, run through the real gitleaks binary.
+//
+// WHY: an allowlist regex is tested against its regexTarget — by default the
+// SECRET, not the line — so an anchored '=\s*$' silently allowlists every base64
+// secret ending in '=' padding, and a rule whose first capture group is the KEY
+// NAME makes --redact print the value. These tests pin the semantics a regex
+// reading of the TOML cannot show: what each allowlist entry is tested against.
+// Same test as cfg-server-foundryvtt's gitleaks-config.test.mjs, plus a case for
+// the default generic-api-key rule.
+//
+// Skips (loudly) where gitleaks is absent. The pre-commit hook scans with
+// gitleaks when it is installed; the pre-push hook runs this file (npm test).
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
+import { randomBytes } from 'node:crypto'
+import { fileURLToPath } from 'node:url'
+
+const CONFIG = fileURLToPath(new URL('./.gitleaks.toml', import.meta.url))
+const HAVE_GITLEAKS = spawnSync('gitleaks', ['version']).status === 0
+const skip = HAVE_GITLEAKS ? false : 'gitleaks is not on PATH, so .gitleaks.toml is UNTESTED here (brew install gitleaks)'
+
+// Generated, never literal. 32 random bytes encode to 44 chars ending in one '='.
+const padded = () => {
+  const v = randomBytes(32).toString('base64')
+  assert.match(v, /[^=]=$/)
+  return v
+}
+
+// For the default generic-api-key rule, which drops a value that starts with '+'
+// or '/' or contains a stopword ("dead", "md5", ...): a padded() value misses about
+// one run in 25. Every stopword has two adjacent letters, two adjacent digits or a
+// punctuation mark, so a value alternating letter and digit never misses.
+const keyLike = () => {
+  const letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  return `${[...randomBytes(22)].map((b) => `${letters[b % 52]}${b % 10}`).join('')}=`
+}
+
+// Scan `files` ({ relativePath: text }) with --no-git from inside a temp dir, so
+// reported paths are relative like a real scan's. Returns the findings and the
+// raw report text (to check that redaction hid the value).
+function scan(files, config = CONFIG) {
+  const root = mkdtempSync(join(tmpdir(), 'gitleaks-cfg-'))
+  try {
+    const src = join(root, 'src')
+    for (const [path, text] of Object.entries(files)) {
+      mkdirSync(dirname(join(src, path)), { recursive: true })
+      writeFileSync(join(src, path), text)
+    }
+    const report = join(root, 'report.json')
+    const r = spawnSync('gitleaks', [
+      'detect', '--no-git', '--source', '.', '--config', config, '--redact', '--no-banner',
+      '--report-format', 'json', '--report-path', report, '--exit-code', '0', '--log-level', 'error',
+    ], { cwd: src, encoding: 'utf8' })
+    assert.equal(r.status, 0, r.stderr)
+    const raw = readFileSync(report, 'utf8')
+    const findings = JSON.parse(raw).map((f) => ({ rule: f.RuleID, file: f.File, line: f.StartLine }))
+    return { findings, raw }
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+}
+
+const AUTH = 'AUTH_SECRET'
+
+const has = (findings, rule, file, line) => findings.some((f) => f.rule === rule && f.file === file && f.line === line)
+
+test("a base64 secret ending in '=' is flagged by each CFG rule, and redacted", { skip }, () => {
+  const [auth, livekit, quoted] = [padded(), padded(), padded()]
+  const { findings, raw } = scan({
+    'app.env': `${AUTH}=${auth}\nLIVEKIT_API_SECRET=${livekit}\nCORE_SECRET="${quoted}"\n`,
+  })
+  assert.ok(has(findings, 'cfg-auth-secret', 'app.env', 1), JSON.stringify(findings))
+  assert.ok(has(findings, 'livekit-secret', 'app.env', 2), JSON.stringify(findings))
+  assert.ok(has(findings, 'cfg-auth-secret', 'app.env', 3), JSON.stringify(findings))
+  // --redact masks the rule's SECRET. If that were the key name, the hook's
+  // output would print the value in clear.
+  for (const v of [auth, livekit, quoted]) assert.ok(!raw.includes(v.slice(0, 40)), 'a value survived --redact')
+})
+
+test("a generic key whose value ends in '=' is flagged", { skip }, () => {
+  const { findings } = scan({ 'app.js': `const api_key = "${keyLike()}"\n` })
+  assert.ok(has(findings, 'generic-api-key', 'app.js', 1), JSON.stringify(findings))
+})
+
+test('a value on the line after an empty key is not exempt', { skip }, () => {
+  const { findings } = scan({ 'app.env': `${AUTH}=\n${padded()}\n` })
+  assert.ok(has(findings, 'cfg-auth-secret', 'app.env', 1), JSON.stringify(findings))
+})
+
+test('genuinely empty assignments still pass', { skip }, () => {
+  const empties = [`${AUTH}=`, 'export LIVEKIT_API_SECRET=', "CORE_SECRET=''"].join('\n')
+  assert.deepEqual(scan({ 'app.env': `${empties}\n` }).findings, [])
+
+  // No shipped rule matches a bare key, so on its own the case above passes
+  // with or without the empty-assignment entry. A probe rule that DOES match
+  // the key proves the entry is what exempts it, and only when the value is empty.
+  const root = mkdtempSync(join(tmpdir(), 'gitleaks-probe-'))
+  try {
+    const probe = join(root, 'probe.toml')
+    writeFileSync(probe, `${readFileSync(CONFIG, 'utf8')}
+[[rules]]
+id = "probe-key-name"
+description = "test-only: flags the key, whatever its value"
+regex = '''(?:PROBE_KEY|probeKey)["']?[ \\t]*[:=]'''
+`)
+    const ok = ['PROBE_KEY=', 'export PROBE_KEY=', "PROBE_KEY=''", 'PROBE_KEY: ""', '  "probeKey": "",', 'PROBE_KEY := ']
+    for (const line of ok) assert.deepEqual(scan({ 'a.env': `${line}\n` }, probe).findings, [], line)
+    // Line 2+ and CRLF: gitleaks prefixes a line-2+ match with its '\\n', and a CRLF line ends in '\\r'.
+    assert.deepEqual(scan({ 'a.env': `FOO=bar\n${ok.join('\n')}\n` }, probe).findings, [], 'empty keys on line 2+')
+    assert.deepEqual(scan({ 'a.env': `${ok.join('\r\n')}\r\n` }, probe).findings, [], 'CRLF')
+    assert.equal(scan({ 'a.env': 'FOO=bar\nPROBE_KEY=x\n' }, probe).findings.length, 1, 'a value on line 2 is still flagged')
+    for (const line of ['PROBE_KEY=x', '"probeKey": "v",', 'PROBE_KEY= # set me']) {
+      assert.equal(scan({ 'a.env': `${line}\n` }, probe).findings.length, 1, line)
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
