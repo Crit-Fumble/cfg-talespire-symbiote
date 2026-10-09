@@ -1,8 +1,7 @@
 #!/bin/sh
 set -e
 
-# Pre-commit: secret scan only.
-# Symbiote has no automated tests yet — when added, append `npm test --silent`.
+# Pre-commit: secret scan only. Tests (npm test) run on push: .husky/pre-push.
 # Skip with: git commit --no-verify  (use sparingly).
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"

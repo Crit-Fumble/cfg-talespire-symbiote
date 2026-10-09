@@ -9,7 +9,8 @@
     "link:dev": "node scripts/link-local.mjs --dev",
     "unlink": "node scripts/link-local.mjs --remove",
     "prepare": "husky",
-    "link:e2e": "node scripts/link-local.mjs --e2e"
+    "link:e2e": "node scripts/link-local.mjs --e2e",
+    "test": "node --test gitleaks-config.test.mjs"
   },
   "devDependencies": {
     "husky": "^9.1.7"

@@ -20,45 +20,50 @@ tags = ["digitalocean", "token"]
 [[rules]]
 id = "livekit-secret"
 description = "LiveKit API Secret"
-regex = '''LIVEKIT_API_SECRET\s*=\s*["']?[A-Za-z0-9+/]{32,}["']?'''
+# secretGroup = the VALUE. Without a group the secret is the whole match, so an
+# unquoted value ending in '=' padding can hit an anchored allowlist like '=\s*$'.
+regex = '''LIVEKIT_API_SECRET\s*=\s*["']?([A-Za-z0-9+/]{32,}={0,2})'''
+secretGroup = 1
 tags = ["livekit", "secret"]
 
 [[rules]]
 id = "cfg-auth-secret"
 description = "CFG auth/service secret assigned to a real value"
-regex = '''(AUTH_SECRET|CORE_SECRET|CRON_SECRET|TEST_AUTH_SECRET|BOT_TEST_SECRET)\s*=\s*["']?[a-zA-Z0-9+/]{32,}["']?'''
+# secretGroup = the VALUE, and the key list is non-capturing. With the key list as
+# the first capture group, gitleaks takes the KEY NAME as the secret: --redact masks
+# "AUTH_SECRET" and prints the value in clear, and allowlist regexes test the key.
+regex = '''(?:AUTH_SECRET|CORE_SECRET|CRON_SECRET|TEST_AUTH_SECRET|BOT_TEST_SECRET)\s*=\s*["']?([a-zA-Z0-9+/]{32,}={0,2})'''
+secretGroup = 1
 tags = ["cfg", "secret"]
 
 # ── Allowlist ─────────────────────────────────────────────────────────────────
 
-[allowlist]
+# Each entry is OR'd: a finding matching ANY entry is dropped. Inside an entry,
+# paths OR regexes match unless it says condition = "AND".
+#
+# ⚠️ regexes are tested against regexTarget — the SECRET unless an entry says
+# otherwise. An anchored pattern like '=\s*$' therefore tests the captured
+# VALUE, not the line it sits on: with that target it silently passes every
+# base64 secret ending in '=' padding (the test is gitleaks-config.test.mjs).
+# Before adding a regex, ask what it is tested against.
+
+[[allowlists]]
 description = "Safe files and known placeholder values"
+regexTarget = "secret"
 
 paths = [
   # Example/template files contain placeholder patterns intentionally
-  '''.env\..*example''',
-  # config/ JSON files contain public OAuth client IDs, public keys,
-  # and infrastructure IDs — none of these are secrets.
-  '''platform\.config\.json''',
-  '''config/.*\.json''',
-  # Docs may reference key formats for illustration
-  '''docs/''',
-  # Test fixtures with known-fake credentials
-  '''tests/''',
-  '''prisma/seeds/''',
+  '''(?:^|/)\.env\.[^/]*example$''',
   # Lock files contain hashes that look like secrets
-  '''package-lock\.json''',
-  '''yarn\.lock''',
+  '''(?:^|/)package-lock\.json$''',
   # This config file
-  '''.gitleaks\.toml''',
+  '''^\.gitleaks\.toml$''',
 ]
 
 regexes = [
   # CI and Dockerfile placeholder values (not real keys)
   '''sk_test_(ci_build_placeholder|placeholder_for_jest|not_a_real)''',
   '''build-placeholder-not-a-real-stripe-key''',
-  # Empty assignments in example files
-  '''=\s*$''',
   # Example prefix stubs (value is empty after the prefix)
   '''sk_live_\s*$''',
   '''sk_test_\s*$''',
@@ -72,3 +77,4 @@ regexes = [
   # License key format strings used in test fixtures
   '''[A-Z]{4}-[0-9]{4}-[A-Z]{4}-[0-9]{4}''',
 ]
+
